@@ -47,3 +47,8 @@ class Parser:
         """ Returns the second argument of the current command.
         """
         return self.current_command.split(' ')[2]
+
+    def currentCommand(self):
+        """ Returns the command.
+        """
+        return self.current_command

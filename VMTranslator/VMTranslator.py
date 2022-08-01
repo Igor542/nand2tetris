@@ -21,13 +21,21 @@ def main():
 
     while (p.hasMoreCommands()):
         p.advance()
+        cw.writeComment(p.currentCommand())
         ct = p.commandType()
         if ct == Command.C_ARITHMETIC:
             cw.writeArithmetic(p.arg1())
         elif ct == Command.C_PUSH or ct == Command.C_POP:
             cw.writePopPush(ct, p.arg1(), p.arg2())
+        elif ct == Command.C_LABEL:
+            cw.writeLabel(p.arg1())
+        elif ct == Command.C_IF:
+            cw.writeIf(p.arg1())
+        elif ct == Command.C_GOTO:
+            cw.writeGoto(p.arg1())
         else:
-            raise Exception("Unknown command type")
+            cmd = p.currentCommand()
+            raise Exception(f"Unknown command: {cmd}")
     cw.Close()
 
 

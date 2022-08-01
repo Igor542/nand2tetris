@@ -21,6 +21,37 @@ class CodeWriter:
         gen = asm()
         self.output.write('\n'.join(gen) + '\n')
 
+    def writeInit(self):
+        """ Writes the assembly instructions that effect the bootstrap code
+            that initializes the VM. Should be placed at the beginning of
+            the generated .asm file.
+        """
+        pass
+
+    def writeLabel(self, label):
+        """ Writes assembly code that effects the label command.
+        """
+        print("[INFO] codewriter: " + label)
+        asm = Commands.commandAsm.get('label')
+        gen = asm(label)
+        self.output.write('\n'.join(gen) + '\n')
+
+    def writeGoto(self, label):
+        """ Writes assembly code that effects the goto command.
+        """
+        print("[INFO] codewriter: " + label)
+        asm = Commands.commandAsm.get('goto')
+        gen = asm(label)
+        self.output.write('\n'.join(gen) + '\n')
+
+    def writeIf(self, label):
+        """ Writes assembly code that effects the if command.
+        """
+        print("[INFO] codewriter: " + label)
+        asm = Commands.commandAsm.get('if')
+        gen = asm(label)
+        self.output.write('\n'.join(gen) + '\n')
+
     def writePopPush(self, command, segment, index):
         """ Writes to the output file the assembly code that implements
             the given command, where command is either C_PUSH or C_POP.
@@ -30,6 +61,9 @@ class CodeWriter:
         print("[INFO] codewriter: " + command_str + ' ' + segment)
         gen = asm(segment, index)
         self.output.write('\n'.join(gen) + '\n')
+
+    def writeComment(self, comment):
+        self.output.write(f'// {comment}\n')
 
     def Close(self):
         """ Closes the output file.

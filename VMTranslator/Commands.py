@@ -29,7 +29,10 @@ commandType = {
     "or": Command.C_ARITHMETIC,
     "not": Command.C_ARITHMETIC,
     "push": Command.C_PUSH,
-    "pop": Command.C_POP
+    "pop": Command.C_POP,
+    "label": Command.C_LABEL,
+    "if-goto": Command.C_IF,
+    "goto": Command.C_GOTO
 }
 
 # TODO: Add a method register a command
@@ -145,7 +148,6 @@ def cnot():
 
 def neg():
     return unary('-')
-
 
 # Filename is required to correctly name static variables
 # CodeWriter should set `filename` prior to code generation
@@ -318,6 +320,26 @@ def pop(segment, index):
     return ps(index)
 
 
+def label(name):
+    global filename
+    return [f'({filename}.{name})']
+
+
+def ifgoto(name):
+    global filename
+    return [
+        '@SP',
+        'AM=M-1',
+        'D=M',
+        f'@{filename}.{name}',
+        'D;JNE']
+
+def goto(name):
+    global filename
+    return [
+        f'@{filename}.{name}',
+        '0;JMP']
+
 commandAsm = {
     "add": add,
     "sub": sub,
@@ -329,5 +351,8 @@ commandAsm = {
     "or": cor,
     "not": cnot,
     "push": push,
-    "pop": pop
+    "pop": pop,
+    "label": label,
+    "if": ifgoto,
+    "goto": goto
 }
