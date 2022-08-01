@@ -4,7 +4,9 @@ import enum
 eq_label_counter = 0
 lt_label_counter = 0
 gt_label_counter = 0
+ret_counter = 0
 
+temp_base = 5
 
 class Command(enum.Enum):
     C_ARITHMETIC = 1
@@ -32,7 +34,10 @@ commandType = {
     "pop": Command.C_POP,
     "label": Command.C_LABEL,
     "if-goto": Command.C_IF,
-    "goto": Command.C_GOTO
+    "goto": Command.C_GOTO,
+    "function": Command.C_FUNCTION,
+    "call": Command.C_CALL,
+    "return": Command.C_RETURN,
 }
 
 # TODO: Add a method register a command
@@ -217,10 +222,21 @@ def push(segment, index):
         ]
 
     def pushTemp(index):
-        base = 5
-        offset = str(base + int(index))
+        global temp_base
+        offset = str(temp_base + int(index))
         return [
             f'@{offset}',
+            'D=M',
+            '@SP',
+            'A=M',
+            'M=D',
+            '@SP',
+            'M=M+1'
+        ]
+
+    def pushSegmentValue(segment):
+        return [
+            f'@{segment}',
             'D=M',
             '@SP',
             'A=M',
@@ -237,7 +253,8 @@ def push(segment, index):
         'constant': pushConstant,
         'static': pushStatic,
         'pointer': pushPointer,
-        'temp': pushTemp
+        'temp': pushTemp,
+        'segmentValue': pushSegmentValue,
     }
 
     ps = pushSegment.get(segment)
@@ -296,8 +313,8 @@ def pop(segment, index):
         ]
 
     def popTemp(index):
-        base = 5
-        offset = str(base + int(index))
+        global temp_base
+        offset = str(temp_base + int(index))
         return [
             '@SP',
             'AM=M-1',
@@ -320,9 +337,9 @@ def pop(segment, index):
     return ps(index)
 
 
-def label(name):
+def label(name, add_filename=True):
     global filename
-    return [f'({filename}.{name})']
+    return [f'({filename}.{name})' if add_filename else f'({name})']
 
 
 def ifgoto(name):
@@ -334,11 +351,145 @@ def ifgoto(name):
         f'@{filename}.{name}',
         'D;JNE']
 
-def goto(name):
+def goto(name, add_filename=True):
     global filename
     return [
-        f'@{filename}.{name}',
+        f'@{filename}.{name}' if add_filename else f'@{name}',
         '0;JMP']
+
+def function(name, nargs):
+    code = []
+    # declare function entry
+    code += label(name, add_filename=False)
+    # init local variables
+    for n in range(int(nargs)):
+        code += push('constant', '0')
+    return code
+
+def call(name, nargs):
+    global ret_counter
+    ret_counter += 1
+    code = []
+    # push return address label
+    code += push('constant', ''.join(label("ret"+ f".{ret_counter}"))[1:-1])
+    # push LCL
+    code += push('segmentValue', 'LCL')
+    # push ARG
+    code += push('segmentValue', 'ARG')
+    # push THIS
+    code += push('segmentValue', 'THIS')
+    # push THAT
+    code += push('segmentValue', 'THAT')
+    # set ARG = SP - 5 - nargs
+    arg_offset = 5 + int(nargs)
+    code += [
+        '@SP',
+        'D=M',
+        f'@{arg_offset}',
+        'D=D-A',
+        '@ARG',
+        'M=D',
+        ]
+    # set LCL = SP
+    code += [
+        '@SP',
+        'D=M',
+        '@LCL',
+        'M=D',
+        ]
+    # goto functionName
+    code += goto(name, add_filename=False)
+    # insert label
+    code += label("ret"+ f".{ret_counter}")
+    return code
+
+def ret():
+    code = []
+    # Store endFrame (temp6)
+    code += [
+        '@LCL',
+        'D=M',
+        '@R13',
+        'M=D',
+    ]
+    # Store return address (temp7 = LCL - 5)
+    code += [
+        '@LCL',
+        'D=M',
+        '@5',
+        'A=D-A',
+        'D=M',
+        '@R14',
+        'M=D',
+    ]
+    # Store return value at ARG[0]
+    code += pop('argument', '0')
+    # SP = ARG + 1
+    code += [
+        '@ARG',
+        'D=M',
+        'D=D+1',
+        '@SP',
+        'M=D',
+    ]
+    # Restore THAT
+    code += [
+        '@R13',
+        'D=M', # endframe
+        '@1',
+        'A=D-A', # endframe -1
+        'D=M', # *(endframe -1)
+        '@THAT',
+        'M=D',
+    ]
+    # Restore THIS
+    code += [
+        '@R13',
+        'D=M', # endframe
+        '@2',
+        'A=D-A', # endframe -2
+        'D=M', # *(endframe -2)
+        '@THIS',
+        'M=D',
+    ]
+    # Restore ARG
+    code += [
+        '@R13',
+        'D=M', # endframe
+        '@3',
+        'A=D-A', # endframe -3
+        'D=M', # *(endframe -3)
+        '@ARG',
+        'M=D',
+    ]
+    # Restore LOCAL
+    code += [
+        '@R13',
+        'D=M', # endframe
+        '@4',
+        'A=D-A', # endframe -4
+        'D=M', # *(endframe -4)
+        '@LCL',
+        'M=D',
+    ]
+    # Jump to return address
+    code += [
+        '@R14',
+        'A=M',
+        '0;JMP',
+    ]
+    return code
+
+def startup():
+    code = []
+    code += [
+        '@256',
+        'D=A',
+        '@SP',
+        'M=D',
+    ]
+    code += call('Sys.init', '0')
+    return code
 
 commandAsm = {
     "add": add,
@@ -354,5 +505,9 @@ commandAsm = {
     "pop": pop,
     "label": label,
     "if": ifgoto,
-    "goto": goto
+    "goto": goto,
+    "function": function,
+    "call": call,
+    "return": ret,
+    "startup": startup,
 }
