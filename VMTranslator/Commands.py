@@ -8,6 +8,7 @@ ret_counter = 0
 
 temp_base = 5
 
+
 class Command(enum.Enum):
     C_ARITHMETIC = 1
     C_PUSH = 2
@@ -47,29 +48,11 @@ commandType = {
 
 
 def add():
-    return [
-        "@SP",
-        "A=M-1",
-        "D=M",
-        "A=A-1",
-        "M=D+M",
-        "D=A+1",
-        "@SP",
-        "M=D"
-    ]
+    return ["@SP", "A=M-1", "D=M", "A=A-1", "M=D+M", "D=A+1", "@SP", "M=D"]
 
 
 def sub():
-    return [
-        "@SP",
-        "A=M-1",
-        "D=M",
-        "A=A-1",
-        "M=M-D",
-        "D=A+1",
-        "@SP",
-        "M=D"
-    ]
+    return ["@SP", "A=M-1", "D=M", "A=A-1", "M=M-D", "D=A+1", "@SP", "M=D"]
 
 
 def comp(op, label_counter):
@@ -96,7 +79,7 @@ def comp(op, label_counter):
         "M=-1",
         f"({op}_LABEL_{label_counter}_END)",
         "@SP",
-        "M=M+1"
+        "M=M+1",
     ]
 
 
@@ -119,142 +102,90 @@ def gt():
 
 
 def binary(op):
-    return [
-        "@SP",
-        "A=M-1",
-        "D=M",
-        "A=A-1",
-        f"M=D{op}M",
-        "D=A+1",
-        "@SP",
-        "M=D"
-    ]
+    return ["@SP", "A=M-1", "D=M", "A=A-1", f"M=D{op}M", "D=A+1", "@SP", "M=D"]
 
 
 def cand():
-    return binary('&')
+    return binary("&")
 
 
 def cor():
-    return binary('|')
+    return binary("|")
 
 
 def unary(op):
-    return [
-        "@SP",
-        "A=M-1",
-        f"M={op}M"
-    ]
+    return ["@SP", "A=M-1", f"M={op}M"]
 
 
 def cnot():
-    return unary('!')
+    return unary("!")
 
 
 def neg():
-    return unary('-')
+    return unary("-")
+
 
 # Filename is required to correctly name static variables
 # CodeWriter should set `filename` prior to code generation
-filename = ''
+filename = ""
 
 
 def push(segment, index):
     def pushDataSegment(segment, index):
         return [
-            f'@{index}',
-            'D=A',
-            f'@{segment}',
-            'A=D+M',
-            'D=M',
-            '@SP',
-            'A=M',
-            'M=D',
-            '@SP',
-            'M=M+1'
+            f"@{index}",
+            "D=A",
+            f"@{segment}",
+            "A=D+M",
+            "D=M",
+            "@SP",
+            "A=M",
+            "M=D",
+            "@SP",
+            "M=M+1",
         ]
 
     def pushLocal(index):
-        return pushDataSegment('LCL', index)
+        return pushDataSegment("LCL", index)
 
     def pushArgument(index):
-        return pushDataSegment('ARG', index)
+        return pushDataSegment("ARG", index)
 
     def pushThis(index):
-        return pushDataSegment('THIS', index)
+        return pushDataSegment("THIS", index)
 
     def pushThat(index):
-        return pushDataSegment('THAT', index)
+        return pushDataSegment("THAT", index)
 
     def pushConstant(index):
-        return [
-            f'@{index}',
-            'D=A',
-            '@SP',
-            'A=M',
-            'M=D',
-            '@SP',
-            'M=M+1'
-        ]
+        return [f"@{index}", "D=A", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
     def pushStatic(index):
         global filename
-        return [
-            f'@{filename}.{index}',
-            'D=M',
-            '@SP',
-            'A=M',
-            'M=D',
-            '@SP',
-            'M=M+1'
-        ]
+        return [f"@{filename}.{index}", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
     def pushPointer(index):
-        pointer = 'THIS' if index == '0' else 'THAT'
-        return [
-            f'@{pointer}',
-            'D=M',
-            '@SP',
-            'A=M',
-            'M=D',
-            '@SP',
-            'M=M+1'
-        ]
+        pointer = "THIS" if index == "0" else "THAT"
+        return [f"@{pointer}", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
     def pushTemp(index):
         global temp_base
         offset = str(temp_base + int(index))
-        return [
-            f'@{offset}',
-            'D=M',
-            '@SP',
-            'A=M',
-            'M=D',
-            '@SP',
-            'M=M+1'
-        ]
+        return [f"@{offset}", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
     def pushSegmentValue(segment):
-        return [
-            f'@{segment}',
-            'D=M',
-            '@SP',
-            'A=M',
-            'M=D',
-            '@SP',
-            'M=M+1'
-        ]
+        return [f"@{segment}", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
     pushSegment = {
-        'local': pushLocal,
-        'argument': pushArgument,
-        'this': pushThis,
-        'that': pushThat,
-        'constant': pushConstant,
-        'static': pushStatic,
-        'pointer': pushPointer,
-        'temp': pushTemp,
-        'segmentValue': pushSegmentValue,
+        "local": pushLocal,
+        "argument": pushArgument,
+        "this": pushThis,
+        "that": pushThat,
+        "constant": pushConstant,
+        "static": pushStatic,
+        "pointer": pushPointer,
+        "temp": pushTemp,
+        "segmentValue": pushSegmentValue,
     }
 
     ps = pushSegment.get(segment)
@@ -264,73 +195,55 @@ def push(segment, index):
 def pop(segment, index):
     def popDataSegment(segment, index):
         return [
-            '@SP',
-            'M=M-1',
-            f'@{index}',
-            'D=A',
-            f'@{segment}',
-            'D=D+M',
-            '@R15',
-            'M=D',
-            '@SP',
-            'A=M',
-            'D=M',
-            '@R15',
-            'A=M',
-            'M=D'
+            "@SP",
+            "M=M-1",
+            f"@{index}",
+            "D=A",
+            f"@{segment}",
+            "D=D+M",
+            "@R15",
+            "M=D",
+            "@SP",
+            "A=M",
+            "D=M",
+            "@R15",
+            "A=M",
+            "M=D",
         ]
 
     def popLocal(index):
-        return popDataSegment('LCL', index)
+        return popDataSegment("LCL", index)
 
     def popArgument(index):
-        return popDataSegment('ARG', index)
+        return popDataSegment("ARG", index)
 
     def popThis(index):
-        return popDataSegment('THIS', index)
+        return popDataSegment("THIS", index)
 
     def popThat(index):
-        return popDataSegment('THAT', index)
+        return popDataSegment("THAT", index)
 
     def popStatic(index):
         global filename
-        return [
-            '@SP',
-            'AM=M-1',
-            'D=M',
-            f'@{filename}.{index}',
-            'M=D'
-        ]
+        return ["@SP", "AM=M-1", "D=M", f"@{filename}.{index}", "M=D"]
 
     def popPointer(index):
-        pointer = 'THIS' if index == '0' else 'THAT'
-        return [
-            '@SP',
-            'AM=M-1',
-            'D=M',
-            f'@{pointer}',
-            'M=D'
-        ]
+        pointer = "THIS" if index == "0" else "THAT"
+        return ["@SP", "AM=M-1", "D=M", f"@{pointer}", "M=D"]
 
     def popTemp(index):
         global temp_base
         offset = str(temp_base + int(index))
-        return [
-            '@SP',
-            'AM=M-1',
-            'D=M',
-            f'@{offset}',
-            'M=D'
-        ]
+        return ["@SP", "AM=M-1", "D=M", f"@{offset}", "M=D"]
 
     popSegment = {
-        'local': popLocal,
-        'argument': popArgument,
-        'this': popThis,
-        'that': popThat,
-        'static': popStatic,
-        'pointer': popPointer,
-        'temp': popTemp
+        "local": popLocal,
+        "argument": popArgument,
+        "this": popThis,
+        "that": popThat,
+        "static": popStatic,
+        "pointer": popPointer,
+        "temp": popTemp,
     }
 
     ps = popSegment.get(segment)
@@ -339,23 +252,18 @@ def pop(segment, index):
 
 def label(name, add_filename=True):
     global filename
-    return [f'({filename}.{name})' if add_filename else f'({name})']
+    return [f"({filename}.{name})" if add_filename else f"({name})"]
 
 
 def ifgoto(name):
     global filename
-    return [
-        '@SP',
-        'AM=M-1',
-        'D=M',
-        f'@{filename}.{name}',
-        'D;JNE']
+    return ["@SP", "AM=M-1", "D=M", f"@{filename}.{name}", "D;JNE"]
+
 
 def goto(name, add_filename=True):
     global filename
-    return [
-        f'@{filename}.{name}' if add_filename else f'@{name}',
-        '0;JMP']
+    return [f"@{filename}.{name}" if add_filename else f"@{name}", "0;JMP"]
+
 
 def function(name, nargs):
     code = []
@@ -363,133 +271,137 @@ def function(name, nargs):
     code += label(name, add_filename=False)
     # init local variables
     for n in range(int(nargs)):
-        code += push('constant', '0')
+        code += push("constant", "0")
     return code
+
 
 def call(name, nargs):
     global ret_counter
     ret_counter += 1
     code = []
     # push return address label
-    code += push('constant', ''.join(label("ret"+ f".{ret_counter}"))[1:-1])
+    code += push("constant", "".join(label("ret" + f".{ret_counter}"))[1:-1])
     # push LCL
-    code += push('segmentValue', 'LCL')
+    code += push("segmentValue", "LCL")
     # push ARG
-    code += push('segmentValue', 'ARG')
+    code += push("segmentValue", "ARG")
     # push THIS
-    code += push('segmentValue', 'THIS')
+    code += push("segmentValue", "THIS")
     # push THAT
-    code += push('segmentValue', 'THAT')
+    code += push("segmentValue", "THAT")
     # set ARG = SP - 5 - nargs
     arg_offset = 5 + int(nargs)
     code += [
-        '@SP',
-        'D=M',
-        f'@{arg_offset}',
-        'D=D-A',
-        '@ARG',
-        'M=D',
-        ]
+        "@SP",
+        "D=M",
+        f"@{arg_offset}",
+        "D=D-A",
+        "@ARG",
+        "M=D",
+    ]
     # set LCL = SP
     code += [
-        '@SP',
-        'D=M',
-        '@LCL',
-        'M=D',
-        ]
+        "@SP",
+        "D=M",
+        "@LCL",
+        "M=D",
+    ]
     # goto functionName
     code += goto(name, add_filename=False)
     # insert label
-    code += label("ret"+ f".{ret_counter}")
+    code += label("ret" + f".{ret_counter}")
     return code
+
 
 def ret():
     code = []
     # Store endFrame (temp6)
     code += [
-        '@LCL',
-        'D=M',
-        '@R13',
-        'M=D',
+        "@LCL",
+        "D=M",
+        "@R13",
+        "M=D",
     ]
     # Store return address (temp7 = LCL - 5)
     code += [
-        '@LCL',
-        'D=M',
-        '@5',
-        'A=D-A',
-        'D=M',
-        '@R14',
-        'M=D',
+        "@LCL",
+        "D=M",
+        "@5",
+        "A=D-A",
+        "D=M",
+        "@R14",
+        "M=D",
     ]
     # Store return value at ARG[0]
-    code += pop('argument', '0')
+    code += pop("argument", "0")
     # SP = ARG + 1
     code += [
-        '@ARG',
-        'D=M',
-        'D=D+1',
-        '@SP',
-        'M=D',
+        "@ARG",
+        "D=M",
+        "D=D+1",
+        "@SP",
+        "M=D",
     ]
     # Restore THAT
     code += [
-        '@R13',
-        'D=M', # endframe
-        '@1',
-        'A=D-A', # endframe -1
-        'D=M', # *(endframe -1)
-        '@THAT',
-        'M=D',
+        "@R13",
+        "D=M",  # endframe
+        "@1",
+        "A=D-A",  # endframe -1
+        "D=M",  # *(endframe -1)
+        "@THAT",
+        "M=D",
     ]
     # Restore THIS
     code += [
-        '@R13',
-        'D=M', # endframe
-        '@2',
-        'A=D-A', # endframe -2
-        'D=M', # *(endframe -2)
-        '@THIS',
-        'M=D',
+        "@R13",
+        "D=M",  # endframe
+        "@2",
+        "A=D-A",  # endframe -2
+        "D=M",  # *(endframe -2)
+        "@THIS",
+        "M=D",
     ]
     # Restore ARG
     code += [
-        '@R13',
-        'D=M', # endframe
-        '@3',
-        'A=D-A', # endframe -3
-        'D=M', # *(endframe -3)
-        '@ARG',
-        'M=D',
+        "@R13",
+        "D=M",  # endframe
+        "@3",
+        "A=D-A",  # endframe -3
+        "D=M",  # *(endframe -3)
+        "@ARG",
+        "M=D",
     ]
     # Restore LOCAL
     code += [
-        '@R13',
-        'D=M', # endframe
-        '@4',
-        'A=D-A', # endframe -4
-        'D=M', # *(endframe -4)
-        '@LCL',
-        'M=D',
+        "@R13",
+        "D=M",  # endframe
+        "@4",
+        "A=D-A",  # endframe -4
+        "D=M",  # *(endframe -4)
+        "@LCL",
+        "M=D",
     ]
     # Jump to return address
     code += [
-        '@R14',
-        'A=M',
-        '0;JMP',
+        "@R14",
+        "A=M",
+        "0;JMP",
     ]
     return code
+
 
 def startup():
     code = []
     code += [
-        '@256',
-        'D=A',
-        '@SP',
-        'M=D',
+        "@256",
+        "D=A",
+        "@SP",
+        "M=D",
     ]
-    code += call('Sys.init', '0')
+    code += call("Sys.init", "0")
     return code
+
 
 commandAsm = {
     "add": add,

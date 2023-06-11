@@ -8,6 +8,7 @@ from Parser import Parser
 from CodeWriter import CodeWriter
 from pathlib import Path
 
+
 def vm_sources(path):
     sources = []
     if os.path.isdir(path):
@@ -26,11 +27,10 @@ def vm_sources(path):
 
 
 def translate(input_file, cw):
-
     p = Parser(input_file)
     Commands.filename = Path(input_file).stem
 
-    while (p.hasMoreCommands()):
+    while p.hasMoreCommands():
         p.advance()
         cw.writeComment(p.currentCommand())
         ct = p.commandType()
@@ -66,9 +66,9 @@ def main():
     if os.path.isdir(input_file):
         is_dir = True
         dir_file = os.path.abspath(input_file)
-        output_file = dir_file + '/' + os.path.basename(dir_file) + ".asm"
+        output_file = dir_file + "/" + os.path.basename(dir_file) + ".asm"
     else:
-        output_file = input_file[0:input_file.find(".vm")]+".asm"
+        output_file = input_file[0 : input_file.find(".vm")] + ".asm"
 
     print("Output file: " + output_file)
     cw = CodeWriter(output_file)
@@ -79,6 +79,7 @@ def main():
         translate(s, cw)
 
     cw.Close()
+
 
 if __name__ == "__main__":
     main()
